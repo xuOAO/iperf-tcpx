@@ -1,0 +1,158 @@
+# Backup files
+*~
+*.bak
+*.orig
+*.swp
+*.swo
+*.tmp
+
+# Object files and libraries
+*.o
+*.a
+*.la
+*.lo
+*.Po
+*.Plo
+*.so
+*.so.*
+*.dylib
+*.dll
+
+# Autotools generated files
+/Makefile
+/Makefile.in
+/autom4te.cache/
+/config.log
+/config.status
+/config.cache
+/configure
+/aclocal.m4
+/libtool
+/ltmain.sh
+
+# Generated spec file
+/iperf3.spec
+
+# Documentation build output
+docs/_build/
+docs/_static/
+
+# Source directory build artifacts
+src/.deps/
+src/.libs/
+src/Makefile
+src/Makefile.in
+src/iperf_config.h
+src/iperf_config.h.in~
+src/version.h
+src/stamp-h1
+
+# Compiled executables
+src/iperf3
+src/iperf3_profile
+src/t_timer
+src/t_units
+src/t_uuid
+src/t_api
+src/t_auth
+src/libiperf.la
+
+# Examples directory build artifacts
+examples/.libs/
+examples/.deps/
+examples/Makefile
+examples/Makefile.in
+examples/mic
+examples/mis
+examples/mic-mic.o
+examples/mis-mis.o
+
+# Development environment files
+.vscode/
+.idea/
+*.sublime-*
+.DS_Store
+Thumbs.db
+
+# Debug and profiling files
+*.dSYM/
+*.prof
+*.pprof
+gmon.out
+callgrind.out.*
+perf.data*
+*.gcno
+*.gcda
+*.gcov
+
+# Cache directories
+.cache/
+.ccache/
+
+# Package management
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.zip
+*.deb
+*.rpm
+
+# Testing artifacts
+test-suite.log
+*.trs
+check-*
+
+# Core dumps
+core
+core.*
+vgcore.*
+
+# Temporary build files
+.deps/
+.libs/
+*.deps
+*.libs
+
+# Static analysis output
+cppcheck-*
+scan-build-*
+
+# Custom build directories
+build/
+Build/
+out/
+dist/
+
+# Compiler and linker artifacts
+*.i
+*.ii
+*.s
+*.bc
+
+# CMake (if used)
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+*.cmake
+
+# Ninja (if used)
+.ninja_deps
+.ninja_log
+build.ninja
+
+# Clang specific
+.clangd/
+compile_flags.txt
+
+# Performance test results
+*.perfdata
+*.results
+
+# Log files
+*.log
+
+# Editor specific files
+*~
+.#*
+\#*#
+*.autosave
