@@ -121,6 +121,7 @@ typedef atomic_uint_fast64_t atomic_iperf_size_t;
 #define OPT_TCPX_DEBUG 41
 #define OPT_IOBUF_SIZE 42
 #define OPT_MAX_TOKENS 43
+#define OPT_TX_PIPELINE 44
 #endif
 
 /* states */

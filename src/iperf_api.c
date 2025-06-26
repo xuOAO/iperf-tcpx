@@ -1177,6 +1177,7 @@ iperf_parse_arguments(struct iperf_test *test, int argc, char **argv)
         {"tcpx-debug", required_argument, NULL, OPT_TCPX_DEBUG},
         {"iobuf-sz", required_argument, NULL, OPT_IOBUF_SIZE},
         {"max-tokens", required_argument, NULL, OPT_MAX_TOKENS},
+        {"tx-pipeline", required_argument, NULL, OPT_TX_PIPELINE},
 #endif
         {"help", no_argument, NULL, 'h'},
         {NULL, 0, NULL, 0}
@@ -1829,6 +1830,13 @@ iperf_parse_arguments(struct iperf_test *test, int argc, char **argv)
 		    return -1;
 		}
 		break;
+	    case OPT_TX_PIPELINE:
+		test->tx_pipeline = atoi(optarg);
+		if (test->tx_pipeline <= 0 || test->tx_pipeline > 1024) {
+		    i_errno = IEBADFORMAT;
+		    return -1;
+		}
+		break;
 #endif
 	    case 'h':
 		usage_long(stdout);
@@ -2280,12 +2288,28 @@ iperf_send_mt(struct iperf_stream *sp)
             break;
         if (multisend > 1 && test->settings->blocks != 0 && test->blocks_sent >= test->settings->blocks)
             break;
+#ifdef HAVE_LIBTCPX
+        int completions = 0;
+#endif
         if ((r = sp->snd(sp)) < 0) {
             if (r == NET_SOFTERROR)
                 break;
             i_errno = IESTREAMWRITE;
             return r;
         }
+#ifdef HAVE_LIBTCPX
+        if (sp->conn_ctx && sp->conn_ctx->txnic_ctx) {
+            if (sp->conn_ctx->inflight >= sp->conn_ctx->pipeline_depth) {
+                completions = tcpx_wait_send_completion(sp->conn_ctx->sock_fd, 5000);
+                if (completions < 0) {
+                    iperf_err(sp->test, "tcpx_wait_send_completion failed");
+                    return completions;
+                }
+                sp->conn_ctx->inflight -= completions;
+            }
+            r = completions * sp->settings->blksize;
+        }
+#endif
         test->bytes_sent += r;
         if (!sp->pending_size)
             ++test->blocks_sent;
@@ -3411,6 +3435,7 @@ iperf_defaults(struct iperf_test *testp)
     testp->tcpx_debug_level = 3;                  // 默认调试级别：INFO
     testp->iobuf_size = 819200;                   // 默认iobuf大小：800KB
     testp->max_tokens = 512;                      // 默认最大tokens数量
+    testp->tx_pipeline = 32;                      // 默认TX pipeline深度
 #endif
 
     return 0;
@@ -5089,35 +5114,55 @@ iperf_add_stream(struct iperf_test *test, struct iperf_stream *sp)
 
 #ifdef HAVE_LIBTCPX
     // 确保是 TCP 协议且已启用 TCPX
-    if (test->tcpx_rxdev && test->protocol->id == Ptcp) {
+    if ((test->tcpx_rxdev || test->tcpx_txdev) && test->protocol->id == Ptcp) {
         // stream->id 是 1-based, 因此用 stream->id - 1 作为数组索引
         int stream_index = sp->id - 1;
         int rule_id = sp->id;
 
-        printf("stream_index: %d, test->num_queue: %d\n", stream_index, test->num_queue);
-        if (stream_index < test->num_queue && test->rxnic_ctx && test->rxnic_ctx->queue_array) {
-            int queue_id = test->rxnic_ctx->queue_array[stream_index];
+        if(test->tcpx_rxdev) {
+            printf("stream_index: %d, test->num_queue: %d\n", stream_index, test->num_queue);
+            if (stream_index < test->num_queue && test->rxnic_ctx && test->rxnic_ctx->queue_array) {
+                int queue_id = test->rxnic_ctx->queue_array[stream_index];
             
-            // 初始化连接上下文
+                // 初始化连接上下文
+                sp->conn_ctx = tcpx_connection_init_simple(
+                    sp->socket,
+                    test->rxnic_ctx,
+                    test->txnic_ctx,
+                    queue_id,
+                    rule_id,
+                    1,  // TCPX_FLOW_STEERING_ENABLED
+                    test->iobuf_size,
+                test->max_tokens,
+                test->tx_pipeline
+                );
+
+                if (!sp->conn_ctx) {
+                    iperf_err(test, "stream %d: 无法初始化 TCPX 连接上下文", sp->socket);
+                } else if (test->debug) {
+                    iperf_printf(test, "stream %d: TCPX 连接上下文已初始化 (队列 %d)\n", sp->socket, queue_id);
+                }
+            } else {
+                if (stream_index >= test->num_queue) {
+                    iperf_err(test, "stream %d: 没有足够的 TCPX 队列 (需求 %d, 可用 %d)", sp->socket, sp->id, test->num_queue);
+                }
+            }
+        } else {
             sp->conn_ctx = tcpx_connection_init_simple(
                 sp->socket,
                 test->rxnic_ctx,
                 test->txnic_ctx,
-                queue_id,
-                rule_id,
-                1,  // TCPX_FLOW_STEERING_ENABLED
+                -1,
+                -1,
+                0,
                 test->iobuf_size,
-                test->max_tokens
+                test->max_tokens,
+                test->tx_pipeline
             );
-
             if (!sp->conn_ctx) {
                 iperf_err(test, "stream %d: 无法初始化 TCPX 连接上下文", sp->socket);
             } else if (test->debug) {
-                iperf_printf(test, "stream %d: TCPX 连接上下文已初始化 (队列 %d)\n", sp->socket, queue_id);
-            }
-        } else {
-            if (stream_index >= test->num_queue) {
-                iperf_err(test, "stream %d: 没有足够的 TCPX 队列 (需求 %d, 可用 %d)", sp->socket, sp->id, test->num_queue);
+                iperf_printf(test, "stream %d: TCPX 连接上下文已初始化\n", sp->socket);
             }
         }
     }

@@ -139,6 +139,7 @@ struct iperf_test
     int tcpx_debug_level;                // TCPX 调试级别
     size_t iobuf_size;                   // 连接的iobuf大小
     int max_tokens;                      // 连接的最大tokens
+    int tx_pipeline;                     // TX pipeline深度
 #endif
 };
 
@@ -176,6 +177,7 @@ struct iperf_stream
 *   `--num-queue <int>`: 指定用于 RX 的队列数量，`--tcpx-rxdev` 必须同时指定，默认为16。
 *   `--iobuf-sz <int>`: 指定用于初始化connection的iobuf_size，`--tcpx-rxdev` 必须同时指定，默认为819200，可以通过KB，MB来指定。
 *   `--max-tokens <int>`: 指定用于初始化connection的max_tokens，`--tcpx-rxdev` 必须同时指定，默认为512，范围为(0, 1024]。
+*   `--tx-pipeline`: 指定用于初始化connection的pipeline，`--tcpx-txdev` 必须同时指定，默认32，要求大于0。
 *   `--tcpx-debug <type>`: 指定用于tcpx-debug的等级，默认为INFO。
 
 **调试级别说明**：
@@ -352,7 +354,8 @@ void iperf_add_stream(struct iperf_test *test, struct iperf_stream *stream)
                 rule_id,
                 TCPX_FLOW_STEERING_ENABLED,
                 test->iobuf_size,
-                test->max_tokens
+                test->max_tokens,
+                test->tx_pipeline
             );
 
             if (!stream->conn_ctx) {

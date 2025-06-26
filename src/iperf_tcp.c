@@ -109,6 +109,15 @@ int
 iperf_tcp_send(struct iperf_stream *sp)
 {
     int r;
+#ifdef HAVE_LIBTCPX
+    if (sp->conn_ctx && sp->conn_ctx->txnic_ctx) {
+        r = tcpx_send_async(sp->conn_ctx, 0, sp->settings->blksize);
+        if (r < 0) {
+            iperf_err(sp->test, "tcpx_send_async failed");
+            return r;
+        }
+    } else {
+#endif
 
     if (!sp->pending_size)
 	      sp->pending_size = sp->settings->blksize;
@@ -117,6 +126,10 @@ iperf_tcp_send(struct iperf_stream *sp)
 	      r = Nsendfile(sp->buffer_fd, sp->socket, sp->buffer, sp->pending_size);
     else
 	      r = Nwrite(sp->socket, sp->buffer, sp->pending_size, Ptcp);
+
+#ifdef HAVE_LIBTCPX
+    }
+#endif
 
     if (r < 0)
         return r;

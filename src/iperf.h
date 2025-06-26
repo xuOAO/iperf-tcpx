@@ -455,6 +455,7 @@ struct iperf_test
     int tcpx_debug_level;                // TCPX 调试级别
     size_t iobuf_size;                   // 连接的iobuf大小
     int max_tokens;                      // 连接的最大tokens
+    int tx_pipeline;                     // TX pipeline深度
 #endif
 
 };
