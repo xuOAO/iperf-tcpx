@@ -58,52 +58,69 @@ PKG_CHECK_MODULES([TCPX], [libtcpx], [use_tcpx=yes], [use_tcpx=no])
 if test "x$use_tcpx" = "xyes"; then
     AC_DEFINE([HAVE_LIBTCPX], [1], [Define if you have libtcpx])
     
-    # Check for CUDA since libtcpx depends on it
+    # Check for CUDA since libtcpx may depend on it (optional)
     AC_ARG_WITH([cuda],
-        [AS_HELP_STRING([--with-cuda=PATH], [Specify CUDA installation path])],
+        [AS_HELP_STRING([--with-cuda=PATH], [Specify CUDA installation path (optional for TCPX)])],
         [cuda_path="$withval"],
         [cuda_path="/usr/local/cuda"])
     
-    # Check if CUDA path exists
-    if test -d "$cuda_path"; then
-        CUDA_CFLAGS="-I$cuda_path/include"
-        CUDA_LDFLAGS="-L$cuda_path/lib64 -L$cuda_path/lib"
-        CUDA_LIBS="-lcudart -lcuda"
-        
-        # Test if we can link with CUDA
-        save_CFLAGS="$CFLAGS"
-        save_LDFLAGS="$LDFLAGS"
-        save_LIBS="$LIBS"
-        
-        CFLAGS="$CFLAGS $CUDA_CFLAGS"
-        LDFLAGS="$LDFLAGS $CUDA_LDFLAGS"
-        LIBS="$LIBS $CUDA_LIBS"
-        
-        AC_MSG_CHECKING([for CUDA libraries])
-        AC_LINK_IFELSE([AC_LANG_PROGRAM([[
-            #include <cuda_runtime.h>
-        ]], [[
-            cudaError_t err = cudaGetDeviceCount(NULL);
-            return 0;
-        ]])],
-        [
-            AC_MSG_RESULT([yes])
-            AC_DEFINE([HAVE_CUDA], [1], [Define if you have CUDA])
-            AC_SUBST([CUDA_CFLAGS])
-            AC_SUBST([CUDA_LDFLAGS]) 
-            AC_SUBST([CUDA_LIBS])
-        ],
-        [
-            AC_MSG_RESULT([no])
-            AC_MSG_ERROR([CUDA libraries not found. libtcpx requires CUDA. Please install CUDA or specify the correct path with --with-cuda=PATH])
-        ])
-        
-        CFLAGS="$save_CFLAGS"
-        LDFLAGS="$save_LDFLAGS"
-        LIBS="$save_LIBS"
+    # Make CUDA optional - only try to use it if explicitly requested or if default path exists
+    cuda_enabled=no
+    if test "x$with_cuda" != "xno"; then
+        # Check if CUDA path exists
+        if test -d "$cuda_path"; then
+            CUDA_CFLAGS="-I$cuda_path/include"
+            CUDA_LDFLAGS="-L$cuda_path/lib64 -L$cuda_path/lib"
+            CUDA_LIBS="-lcudart -lcuda"
+            
+            # Test if we can link with CUDA
+            save_CFLAGS="$CFLAGS"
+            save_LDFLAGS="$LDFLAGS"
+            save_LIBS="$LIBS"
+            
+            CFLAGS="$CFLAGS $CUDA_CFLAGS"
+            LDFLAGS="$LDFLAGS $CUDA_LDFLAGS"
+            LIBS="$LIBS $CUDA_LIBS"
+            
+            AC_MSG_CHECKING([for CUDA libraries])
+            AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+                #include <cuda_runtime.h>
+            ]], [[
+                cudaError_t err = cudaGetDeviceCount(NULL);
+                return 0;
+            ]])],
+            [
+                AC_MSG_RESULT([yes])
+                AC_DEFINE([HAVE_CUDA], [1], [Define if you have CUDA])
+                AC_SUBST([CUDA_CFLAGS])
+                AC_SUBST([CUDA_LDFLAGS]) 
+                AC_SUBST([CUDA_LIBS])
+                cuda_enabled=yes
+            ],
+            [
+                AC_MSG_RESULT([no])
+                if test "x$with_cuda" != "x"; then
+                    AC_MSG_WARN([CUDA libraries not found at $cuda_path. TCPX will work without CUDA acceleration.])
+                else
+                    AC_MSG_NOTICE([CUDA not found. TCPX will work without CUDA acceleration.])
+                fi
+            ])
+            
+            CFLAGS="$save_CFLAGS"
+            LDFLAGS="$save_LDFLAGS"
+            LIBS="$save_LIBS"
+        else
+            if test "x$with_cuda" != "x"; then
+                AC_MSG_WARN([CUDA directory $cuda_path does not exist. TCPX will work without CUDA acceleration.])
+            else
+                AC_MSG_NOTICE([CUDA not found at default location. TCPX will work without CUDA acceleration.])
+            fi
+        fi
     else
-        AC_MSG_ERROR([CUDA directory $cuda_path does not exist. Please install CUDA or specify the correct path with --with-cuda=PATH])
+        AC_MSG_NOTICE([CUDA support explicitly disabled. TCPX will work without CUDA acceleration.])
     fi
+    
+    AC_MSG_NOTICE([TCPX support enabled (CUDA: $cuda_enabled)])
 fi
 
 # Add -Wall if we are using GCC.

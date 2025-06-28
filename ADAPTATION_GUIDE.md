@@ -513,7 +513,7 @@ int iperf_tcp_send(struct iperf_stream *sp)
     // 检查是否使用 TCPX 发送
     if (sp->conn_ctx && sp->conn_ctx->txnic_ctx) {
         // 使用 TCPX 零拷贝发送
-        r = tcpx_send(sp->conn_ctx, sp->buffer, sp->pending_size, 0);
+        r = tcpx_send_async(sp->conn_ctx, 0, sp->pending_size);
         
         if (r < 0 && sp->test->debug) {
             iperf_printf(sp->test, "TCPX send 失败，回退到标准 socket\n");
