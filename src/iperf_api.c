@@ -1825,7 +1825,7 @@ iperf_parse_arguments(struct iperf_test *test, int argc, char **argv)
 		break;
 	    case OPT_MAX_TOKENS:
 		test->max_tokens = atoi(optarg);
-		if (test->max_tokens <= 0 || test->max_tokens > 1024) {
+		if (test->max_tokens <= 0) {
 		    i_errno = IEBADFORMAT;
 		    return -1;
 		}
