@@ -1,6 +1,39 @@
 iperf3:  A TCP, UDP, and SCTP network bandwidth measurement tool
 ================================================================
 
+TCPX 参数说明
+---------------
+
+此版本的 iperf3 支持 TCPX 加速以实现零拷贝 TCP 传输。以下是可用的命令行参数：
+
+### 网络设备配置
+*   `--tcpx-rxdev <ifname>`: 指定用于 TCPX 绑定的 RX 网络设备
+*   `--tcpx-txdev <ifname>`: 指定用于 TCPX 绑定的 TX 网络设备
+
+### 内存配置
+*   `--tcpx-rxmem <type>`: 指定 RX 内存类型（`host` 或 `cuda`），需要同时指定 `--tcpx-rxdev`，默认：`host`
+*   `--tcpx-txmem <type>`: 指定 TX 内存类型（`host` 或 `cuda`），需要同时指定 `--tcpx-txdev`，默认：`host`
+*   `--tcpx-rxmemsz <int>`: 指定 RX 缓冲区大小，需要同时指定 `--tcpx-rxdev`，默认：16000 * 4096B
+*   `--tcpx-txmemsz <int>`: 指定 TX 缓冲区大小，需要同时指定 `--tcpx-txdev`，默认：16000 * 4096B
+
+### 队列配置
+*   `--start-queue <int>`: 指定 RX 起始队列号，需要同时指定 `--tcpx-rxdev`，默认：1
+*   `--num-queue <int>`: 指定 RX 队列数量，需要同时指定 `--tcpx-rxdev`，默认：16
+
+### 连接配置
+*   `--iobuf-sz <int>`: 指定连接初始化的 iobuf_size，需要同时指定 `--tcpx-rxdev`，默认：819200（支持 KB、MB 后缀）
+*   `--max-tokens <int>`: 指定连接初始化的 max_tokens，需要同时指定 `--tcpx-rxdev`，默认：512，范围：(0, 1024]
+*   `--tx-pipeline <int>`: 指定连接初始化的 pipeline 深度，需要同时指定 `--tcpx-txdev`，默认：32，必须 > 0
+
+### 调试配置
+*   `--tcpx-debug <type>`: 指定 TCPX 调试级别，默认：`INFO`
+    - `NONE` 或 `0`: 无调试输出
+    - `ERROR` 或 `1`: 仅输出错误信息
+    - `WARN` 或 `2`: 输出警告和错误信息
+    - `INFO` 或 `3`: 输出一般信息（默认）
+    - `VERBOSE` 或 `4`: 输出详细调试信息
+    - `ALL` 或 `5`: 输出所有调试信息包括跟踪
+
 Summary
 -------
 
